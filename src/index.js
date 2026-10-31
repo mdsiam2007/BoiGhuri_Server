@@ -50,11 +50,13 @@ app.get('/', (req, res) => {
 // Routes
 const bookRoutes = require('./routes/bookRoutes');
 const borrowRoutes = require('./routes/borrowRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
 const authRoutes = require('./routes/authRoutes');
 
 app.use('/auth', authRoutes);
 app.use('/books', bookRoutes);
 app.use('/borrows', borrowRoutes);
+app.use('/reviews', reviewRoutes);
 
 // Global Error Handler
 app.use(errorHandler);
