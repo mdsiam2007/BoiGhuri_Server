@@ -1,35 +1,39 @@
-import mongoose from 'mongoose';
-import Review from '../models/Review.js';
-import Book from '../models/Book.js';
+import { ObjectId } from 'mongodb';
+import { getReviewsCollection, getBooksCollection } from '../config/collections.js';
 
 // @desc    Get all reviews for a book
 // @route   GET /reviews?bookId=:bookId or GET /books/:bookId/reviews
 // @access  Public
 export const getBookReviews = async (req, res) => {
   try {
+    const reviewsCollection = getReviewsCollection();
     const bookId = req.params.bookId || req.query.bookId;
 
-    if (!bookId || !mongoose.Types.ObjectId.isValid(bookId)) {
+    if (!bookId || !ObjectId.isValid(bookId)) {
       return res.status(400).json({
         success: false,
         message: 'বৈধ বুক আইডি আবশ্যক!',
       });
     }
 
-    const reviews = await Review.find({ bookId }).sort({ createdAt: -1 });
+    const reviews = await reviewsCollection
+      .find({ bookId: new ObjectId(bookId) })
+      .sort({ createdAt: -1 })
+      .toArray();
 
-    // Calculate average rating
     const averageRating =
       reviews.length > 0
-        ? (
-            reviews.reduce((acc, item) => acc + item.rating, 0) / reviews.length
-          ).toFixed(1)
+        ? Number(
+            (
+              reviews.reduce((acc, item) => acc + item.rating, 0) / reviews.length
+            ).toFixed(1)
+          )
         : 0;
 
     res.status(200).json({
       success: true,
       count: reviews.length,
-      averageRating: Number(averageRating),
+      averageRating,
       data: reviews,
     });
   } catch (error) {
@@ -45,10 +49,13 @@ export const getBookReviews = async (req, res) => {
 // @access  Private (JWT required)
 export const addReview = async (req, res) => {
   try {
+    const reviewsCollection = getReviewsCollection();
+    const booksCollection = getBooksCollection();
+
     const { bookId, rating, comment } = req.body;
     const userEmail = req.user.email.toLowerCase().trim();
-    const userName = req.user.name || 'Anonymous';
-    const userImage = req.user.image || '';
+    const userName = req.user.name;
+    const userImage = req.user.image;
 
     if (!bookId || !rating || !comment) {
       return res.status(400).json({
@@ -57,7 +64,7 @@ export const addReview = async (req, res) => {
       });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(bookId)) {
+    if (!ObjectId.isValid(bookId)) {
       return res.status(400).json({
         success: false,
         message: 'অকার্যকর বুক আইডি!',
@@ -72,8 +79,10 @@ export const addReview = async (req, res) => {
       });
     }
 
+    const bookObjectId = new ObjectId(bookId);
+
     // Check if book exists
-    const book = await Book.findById(bookId);
+    const book = await booksCollection.findOne({ _id: bookObjectId });
     if (!book) {
       return res.status(404).json({
         success: false,
@@ -82,7 +91,11 @@ export const addReview = async (req, res) => {
     }
 
     // Check if user already reviewed this book (1 review per user rule)
-    const existingReview = await Review.findOne({ bookId, userEmail });
+    const existingReview = await reviewsCollection.findOne({
+      bookId: bookObjectId,
+      userEmail,
+    });
+
     if (existingReview) {
       return res.status(400).json({
         success: false,
@@ -90,20 +103,27 @@ export const addReview = async (req, res) => {
       });
     }
 
-    const review = await Review.create({
-      bookId,
+    const reviewDoc = {
+      bookId: bookObjectId,
       userEmail,
       userName,
       userImage,
       rating: numericRating,
       comment: comment.trim(),
       isEdited: false,
-    });
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const insertResult = await reviewsCollection.insertOne(reviewDoc);
 
     res.status(201).json({
       success: true,
       message: 'আপনার রিভিউ সফলভাবে প্রকাশ করা হয়েছে!',
-      data: review,
+      data: {
+        _id: insertResult.insertedId,
+        ...reviewDoc,
+      },
     });
   } catch (error) {
     res.status(500).json({
@@ -118,18 +138,19 @@ export const addReview = async (req, res) => {
 // @access  Private (Owner only)
 export const updateReview = async (req, res) => {
   try {
+    const reviewsCollection = getReviewsCollection();
     const { id } = req.params;
     const { rating, comment } = req.body;
     const userEmail = req.user.email.toLowerCase().trim();
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
         message: 'অকার্যকর রিভিউ আইডি!',
       });
     }
 
-    const review = await Review.findById(id);
+    const review = await reviewsCollection.findOne({ _id: new ObjectId(id) });
 
     if (!review) {
       return res.status(404).json({
@@ -138,13 +159,17 @@ export const updateReview = async (req, res) => {
       });
     }
 
-    // Check owner
     if (review.userEmail.toLowerCase() !== userEmail) {
       return res.status(403).json({
         success: false,
         message: 'অনধিকার চর্চা! আপনি শুধুমাত্র নিজের দেওয়া রিভিউ এডিট করতে পারবেন।',
       });
     }
+
+    const updateFields = {
+      isEdited: true,
+      updatedAt: new Date(),
+    };
 
     if (rating !== undefined) {
       const numericRating = Number(rating);
@@ -154,17 +179,19 @@ export const updateReview = async (req, res) => {
           message: 'রেটিং অবশ্যই ১ থেকে ৫ এর মধ্যে হতে হবে!',
         });
       }
-      review.rating = numericRating;
+      updateFields.rating = numericRating;
     }
 
     if (comment !== undefined && comment.trim() !== '') {
-      review.comment = comment.trim();
+      updateFields.comment = comment.trim();
     }
 
-    // Mark as edited
-    review.isEdited = true;
+    await reviewsCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: updateFields }
+    );
 
-    const updatedReview = await review.save();
+    const updatedReview = await reviewsCollection.findOne({ _id: new ObjectId(id) });
 
     res.status(200).json({
       success: true,
@@ -184,17 +211,18 @@ export const updateReview = async (req, res) => {
 // @access  Private (Owner only)
 export const deleteReview = async (req, res) => {
   try {
+    const reviewsCollection = getReviewsCollection();
     const { id } = req.params;
     const userEmail = req.user.email.toLowerCase().trim();
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
         message: 'অকার্যকর রিভিউ আইডি!',
       });
     }
 
-    const review = await Review.findById(id);
+    const review = await reviewsCollection.findOne({ _id: new ObjectId(id) });
 
     if (!review) {
       return res.status(404).json({
@@ -210,7 +238,7 @@ export const deleteReview = async (req, res) => {
       });
     }
 
-    await Review.findByIdAndDelete(id);
+    await reviewsCollection.deleteOne({ _id: new ObjectId(id) });
 
     res.status(200).json({
       success: true,

@@ -3,7 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
-import connectDB from './config/db.js';
+import { connectDB } from './config/db.js';
 import errorHandler from './middlewares/errorHandler.js';
 
 import bookRoutes from './routes/bookRoutes.js';
@@ -12,10 +12,10 @@ import reviewRoutes from './routes/reviewRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT;
 
-// Connect to MongoDB with DB_NAME from env
-connectDB();
+// Connect to MongoDB using native driver
+await connectDB();
 
 // Middlewares
 const allowedOrigins = [
@@ -47,7 +47,8 @@ if (process.env.NODE_ENV !== 'production') {
 app.get('/', (req, res) => {
   res.json({
     success: true,
-    message: '📚 BoiGhuri (বইঘুরি) API সার্ভার সফলভাবে চলছে (ES Modules)!',
+    message: '📚 BoiGhuri (বইঘুরি) API সার্ভার সফলভাবে চলছে (Native MongoDB Driver)!',
+    database: process.env.DB_NAME,
     timestamp: new Date().toISOString(),
   });
 });
@@ -62,7 +63,7 @@ app.use('/reviews', reviewRoutes);
 app.use(errorHandler);
 
 app.listen(PORT, () => {
-  console.log(`🚀 BoiGhuri সার্ভার চালু হয়েছে পোর্ট: ${PORT} (ES Modules)`);
+  console.log(`🚀 BoiGhuri সার্ভার চালু হয়েছে পোর্ট: ${PORT} (Native MongoDB Driver & ES Modules)`);
 });
 
 export default app;

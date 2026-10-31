@@ -1,15 +1,17 @@
-import mongoose from 'mongoose';
-import Borrow from '../models/Borrow.js';
-import Book from '../models/Book.js';
+import { ObjectId } from 'mongodb';
+import { getBooksCollection, getBorrowsCollection } from '../config/collections.js';
 
 // @desc    Borrow a book
 // @route   POST /borrows
 // @access  Private (JWT)
 export const borrowBook = async (req, res) => {
   try {
+    const booksCollection = getBooksCollection();
+    const borrowsCollection = getBorrowsCollection();
+
     const { bookId, returnDate } = req.body;
     const userEmail = req.user.email.toLowerCase().trim();
-    const userName = req.user.name || 'Anonymous';
+    const userName = req.user.name;
 
     if (!bookId || !returnDate) {
       return res.status(400).json({
@@ -18,16 +20,18 @@ export const borrowBook = async (req, res) => {
       });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(bookId)) {
+    if (!ObjectId.isValid(bookId)) {
       return res.status(400).json({
         success: false,
         message: 'অকার্যকর বুক আইডি!',
       });
     }
 
+    const bookObjectId = new ObjectId(bookId);
+
     // Challenge 2: No Double Borrow check
-    const existingBorrow = await Borrow.findOne({
-      bookId,
+    const existingBorrow = await borrowsCollection.findOne({
+      bookId: bookObjectId,
       userEmail,
       status: 'borrowed',
     });
@@ -40,13 +44,15 @@ export const borrowBook = async (req, res) => {
     }
 
     // Challenge 1: Decrease available copies by 1 with $inc if totalCopies > 0
-    const updatedBook = await Book.findOneAndUpdate(
-      { _id: bookId, totalCopies: { $gt: 0 } },
+    const updateResult = await booksCollection.findOneAndUpdate(
+      { _id: bookObjectId, totalCopies: { $gt: 0 } },
       { $inc: { totalCopies: -1 } },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
-    if (!updatedBook) {
+    const updatedBook = updateResult?.value || updateResult;
+
+    if (!updatedBook || updatedBook.totalCopies < 0) {
       return res.status(400).json({
         success: false,
         message: 'দুঃখিত, এই বইটির কোনো কপি বর্তমানে লাইব্রেরিতে অবশিষ্ট নেই!',
@@ -54,8 +60,8 @@ export const borrowBook = async (req, res) => {
     }
 
     // Create borrow record
-    const borrowRecord = await Borrow.create({
-      bookId,
+    const borrowDoc = {
+      bookId: bookObjectId,
       bookTitle: updatedBook.title,
       bookImage: updatedBook.image,
       userEmail,
@@ -63,12 +69,18 @@ export const borrowBook = async (req, res) => {
       borrowDate: new Date(),
       returnDate: new Date(returnDate),
       status: 'borrowed',
-    });
+      createdAt: new Date(),
+    };
+
+    const insertResult = await borrowsCollection.insertOne(borrowDoc);
 
     res.status(201).json({
       success: true,
       message: `"${updatedBook.title}" বইটি সফলভাবে ধার নেওয়া হয়েছে!`,
-      data: borrowRecord,
+      data: {
+        _id: insertResult.insertedId,
+        ...borrowDoc,
+      },
       remainingCopies: updatedBook.totalCopies,
     });
   } catch (error) {
@@ -84,14 +96,16 @@ export const borrowBook = async (req, res) => {
 // @access  Private (JWT)
 export const getMyBorrows = async (req, res) => {
   try {
+    const borrowsCollection = getBorrowsCollection();
     const userEmail = req.user.email.toLowerCase().trim();
 
-    const borrows = await Borrow.find({
-      userEmail,
-      status: 'borrowed',
-    })
+    const borrows = await borrowsCollection
+      .find({
+        userEmail,
+        status: 'borrowed',
+      })
       .sort({ createdAt: -1 })
-      .populate('bookId', 'category author description');
+      .toArray();
 
     res.status(200).json({
       success: true,
@@ -111,16 +125,18 @@ export const getMyBorrows = async (req, res) => {
 // @access  Private (JWT)
 export const returnBook = async (req, res) => {
   try {
+    const booksCollection = getBooksCollection();
+    const borrowsCollection = getBorrowsCollection();
     const { id } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
         message: 'অকার্যকর বরো আইডি!',
       });
     }
 
-    const borrowRecord = await Borrow.findById(id);
+    const borrowRecord = await borrowsCollection.findOne({ _id: new ObjectId(id) });
 
     if (!borrowRecord) {
       return res.status(404).json({
@@ -138,12 +154,13 @@ export const returnBook = async (req, res) => {
     }
 
     // Challenge 1: Increase available copies by 1 with $inc
-    await Book.findByIdAndUpdate(borrowRecord.bookId, {
-      $inc: { totalCopies: 1 },
-    });
+    await booksCollection.updateOne(
+      { _id: new ObjectId(borrowRecord.bookId) },
+      { $inc: { totalCopies: 1 } }
+    );
 
     // Delete the borrow record from database
-    await Borrow.findByIdAndDelete(id);
+    await borrowsCollection.deleteOne({ _id: new ObjectId(id) });
 
     res.status(200).json({
       success: true,

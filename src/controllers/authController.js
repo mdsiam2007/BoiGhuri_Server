@@ -1,6 +1,5 @@
 import jwt from 'jsonwebtoken';
-import Book from '../models/Book.js';
-import Review from '../models/Review.js';
+import { getBooksCollection, getReviewsCollection } from '../config/collections.js';
 
 // @desc    Generate JWT token for authenticated user
 // @route   POST /auth/jwt
@@ -18,20 +17,19 @@ export const createJwtToken = async (req, res) => {
 
     const payload = {
       email: email.toLowerCase().trim(),
-      name: name || 'User',
-      image: image || '',
+      name: name,
+      image: image,
     };
 
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
       expiresIn: '7d',
     });
 
-    // Set httpOnly cookie
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     res.status(200).json({
@@ -52,6 +50,9 @@ export const createJwtToken = async (req, res) => {
 // @access  Private (JWT)
 export const updateProfileName = async (req, res) => {
   try {
+    const booksCollection = getBooksCollection();
+    const reviewsCollection = getReviewsCollection();
+
     const { name, image } = req.body;
     const userEmail = req.user.email.toLowerCase().trim();
 
@@ -66,17 +67,21 @@ export const updateProfileName = async (req, res) => {
     const updatedImage = image !== undefined ? image : req.user.image;
 
     // Update user's name across their added books and reviews
-    await Book.updateMany({ userEmail }, { $set: { userName: updatedName } });
-    await Review.updateMany(
+    await booksCollection.updateMany(
       { userEmail },
-      { $set: { userName: updatedName, ...(image && { userImage: updatedImage }) } }
+      { $set: { userName: updatedName } }
     );
 
-    // Create a fresh JWT token with the new name
+    const reviewUpdate = { userName: updatedName };
+    if (image) {
+      reviewUpdate.userImage = updatedImage;
+    }
+    await reviewsCollection.updateMany({ userEmail }, { $set: reviewUpdate });
+
     const newPayload = {
       email: userEmail,
       name: updatedName,
-      image: updatedImage || '',
+      image: updatedImage,
     };
 
     const token = jwt.sign(newPayload, process.env.JWT_SECRET, {

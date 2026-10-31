@@ -1,16 +1,31 @@
-import mongoose from 'mongoose';
+import { MongoClient, ServerApiVersion } from 'mongodb';
 
-const connectDB = async () => {
-  try {
-    const dbName = process.env.DB_NAME || 'boighuri';
-    const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      dbName,
-    });
-    console.log(`🍃 MongoDB Connected: ${conn.connection.host} (Database: ${conn.connection.name})`);
-  } catch (error) {
-    console.error(`❌ MongoDB Connection Error: ${error.message}`);
-    process.exit(1);
+const uri = process.env.MONGODB_URI;
+
+export const client = new MongoClient(uri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  },
+});
+
+let db;
+
+export async function connectDB() {
+  await client.connect();
+  db = client.db(process.env.DB_NAME);
+  console.log(`🍃 Connected successfully to MongoDB (Database: ${process.env.DB_NAME})`);
+  return db;
+}
+
+export function getDB() {
+  if (!db) {
+    db = client.db(process.env.DB_NAME);
   }
-};
+  return db;
+}
 
-export default connectDB;
+export function getCollection(name) {
+  return getDB().collection(name);
+}

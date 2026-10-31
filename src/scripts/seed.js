@@ -1,6 +1,5 @@
 import 'dotenv/config';
-import mongoose from 'mongoose';
-import Book from '../models/Book.js';
+import { MongoClient, ServerApiVersion } from 'mongodb';
 
 const seedBooks = [
   {
@@ -12,6 +11,8 @@ const seedBooks = [
     totalCopies: 5,
     userEmail: 'admin@boighuri.com',
     userName: 'বইঘুরি লাইব্রেরি',
+    createdAt: new Date(),
+    updatedAt: new Date(),
   },
   {
     title: 'চাঁদের পাহাড়',
@@ -22,6 +23,8 @@ const seedBooks = [
     totalCopies: 4,
     userEmail: 'admin@boighuri.com',
     userName: 'বইঘুরি লাইব্রেরি',
+    createdAt: new Date(),
+    updatedAt: new Date(),
   },
   {
     title: 'কালের সংক্ষিপ্ত ইতিহাস',
@@ -32,6 +35,8 @@ const seedBooks = [
     totalCopies: 6,
     userEmail: 'admin@boighuri.com',
     userName: 'বইঘুরি লাইব্রেরি',
+    createdAt: new Date(),
+    updatedAt: new Date(),
   },
   {
     title: 'কসমস',
@@ -42,6 +47,8 @@ const seedBooks = [
     totalCopies: 3,
     userEmail: 'admin@boighuri.com',
     userName: 'বইঘুরি লাইব্রেরি',
+    createdAt: new Date(),
+    updatedAt: new Date(),
   },
   {
     title: 'একাত্তরের দিনগুলি',
@@ -52,6 +59,8 @@ const seedBooks = [
     totalCopies: 7,
     userEmail: 'admin@boighuri.com',
     userName: 'বইঘুরি লাইব্রেরি',
+    createdAt: new Date(),
+    updatedAt: new Date(),
   },
   {
     title: 'টুনটুনির বই',
@@ -62,26 +71,39 @@ const seedBooks = [
     totalCopies: 5,
     userEmail: 'admin@boighuri.com',
     userName: 'বইঘুরি লাইব্রেরি',
+    createdAt: new Date(),
+    updatedAt: new Date(),
   },
 ];
 
 const seedDB = async () => {
-  try {
-    const dbName = process.env.DB_NAME || 'boighuri';
-    await mongoose.connect(process.env.MONGODB_URI, { dbName });
-    console.log(`🍃 MongoDB Connected for Seeding (DB: ${dbName})...`);
+  const client = new MongoClient(process.env.MONGODB_URI, {
+    serverApi: {
+      version: ServerApiVersion.v1,
+      strict: true,
+      deprecationErrors: true,
+    },
+  });
 
-    const count = await Book.countDocuments();
+  try {
+    await client.connect();
+    const db = client.db(process.env.DB_NAME);
+    const booksCollection = db.collection('books');
+    console.log(`🍃 Connected for Seeding (Database: ${process.env.DB_NAME})...`);
+
+    const count = await booksCollection.countDocuments();
     if (count === 0) {
-      await Book.insertMany(seedBooks);
+      await booksCollection.insertMany(seedBooks);
       console.log('✅ সফলভাবে প্রাথমিক বইগুলো ডাটাবেসে সিড করা হয়েছে!');
     } else {
       console.log(`ℹ️ ডাটাবেসে ইতিমধ্যে ${count}টি বই সংরক্ষিত রয়েছে।`);
     }
 
+    await client.close();
     process.exit(0);
   } catch (error) {
     console.error('❌ সিডিংয়ে ত্রুটি:', error.message);
+    await client.close();
     process.exit(1);
   }
 };
