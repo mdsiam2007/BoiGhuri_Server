@@ -49,10 +49,12 @@ app.get('/', (req, res) => {
 
 // Routes
 const bookRoutes = require('./routes/bookRoutes');
+const borrowRoutes = require('./routes/borrowRoutes');
 const authRoutes = require('./routes/authRoutes');
 
 app.use('/auth', authRoutes);
 app.use('/books', bookRoutes);
+app.use('/borrows', borrowRoutes);
 
 // Global Error Handler
 app.use(errorHandler);
