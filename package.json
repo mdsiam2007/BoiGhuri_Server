@@ -1,8 +1,9 @@
 {
   "name": "boi-ghuri-server",
   "version": "1.0.0",
-  "description": "Backend API for BoiGhuri Online Library Platform",
+  "description": "Backend API for BoiGhuri Online Library Platform (ES Modules)",
   "main": "src/index.js",
+  "type": "module",
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
@@ -12,7 +13,8 @@
     "library",
     "book-management",
     "express",
-    "mongoose"
+    "mongoose",
+    "esm"
   ],
   "author": "",
   "license": "ISC",

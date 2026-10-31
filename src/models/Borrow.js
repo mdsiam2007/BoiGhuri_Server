@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const borrowSchema = new mongoose.Schema(
   {
@@ -50,4 +50,5 @@ const borrowSchema = new mongoose.Schema(
 borrowSchema.index({ userEmail: 1, status: 1 });
 borrowSchema.index({ bookId: 1, userEmail: 1, status: 1 });
 
-module.exports = mongoose.model('Borrow', borrowSchema);
+const Borrow = mongoose.model('Borrow', borrowSchema);
+export default Borrow;

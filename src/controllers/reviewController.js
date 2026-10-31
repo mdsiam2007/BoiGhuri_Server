@@ -1,11 +1,11 @@
-const mongoose = require('mongoose');
-const Review = require('../models/Review');
-const Book = require('../models/Book');
+import mongoose from 'mongoose';
+import Review from '../models/Review.js';
+import Book from '../models/Book.js';
 
 // @desc    Get all reviews for a book
 // @route   GET /reviews?bookId=:bookId or GET /books/:bookId/reviews
 // @access  Public
-const getBookReviews = async (req, res) => {
+export const getBookReviews = async (req, res) => {
   try {
     const bookId = req.params.bookId || req.query.bookId;
 
@@ -43,7 +43,7 @@ const getBookReviews = async (req, res) => {
 // @desc    Add a review for a book
 // @route   POST /reviews
 // @access  Private (JWT required)
-const addReview = async (req, res) => {
+export const addReview = async (req, res) => {
   try {
     const { bookId, rating, comment } = req.body;
     const userEmail = req.user.email.toLowerCase().trim();
@@ -116,7 +116,7 @@ const addReview = async (req, res) => {
 // @desc    Edit user review
 // @route   PATCH /reviews/:id
 // @access  Private (Owner only)
-const updateReview = async (req, res) => {
+export const updateReview = async (req, res) => {
   try {
     const { id } = req.params;
     const { rating, comment } = req.body;
@@ -182,7 +182,7 @@ const updateReview = async (req, res) => {
 // @desc    Delete user review
 // @route   DELETE /reviews/:id
 // @access  Private (Owner only)
-const deleteReview = async (req, res) => {
+export const deleteReview = async (req, res) => {
   try {
     const { id } = req.params;
     const userEmail = req.user.email.toLowerCase().trim();
@@ -222,11 +222,4 @@ const deleteReview = async (req, res) => {
       message: 'রিভিউ মুছে ফেলতে ব্যর্থ: ' + error.message,
     });
   }
-};
-
-module.exports = {
-  getBookReviews,
-  addReview,
-  updateReview,
-  deleteReview,
 };

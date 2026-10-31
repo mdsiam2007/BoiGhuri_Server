@@ -1,15 +1,20 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const morgan = require('morgan');
-const cookieParser = require('cookie-parser');
-const connectDB = require('./config/db');
-const errorHandler = require('./middlewares/errorHandler');
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import morgan from 'morgan';
+import cookieParser from 'cookie-parser';
+import connectDB from './config/db.js';
+import errorHandler from './middlewares/errorHandler.js';
+
+import bookRoutes from './routes/bookRoutes.js';
+import borrowRoutes from './routes/borrowRoutes.js';
+import reviewRoutes from './routes/reviewRoutes.js';
+import authRoutes from './routes/authRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Connect to MongoDB
+// Connect to MongoDB with DB_NAME from env
 connectDB();
 
 // Middlewares
@@ -42,17 +47,12 @@ if (process.env.NODE_ENV !== 'production') {
 app.get('/', (req, res) => {
   res.json({
     success: true,
-    message: '📚 BoiGhuri (বইঘুরি) API সার্ভার সফলভাবে চলছে!',
+    message: '📚 BoiGhuri (বইঘুরি) API সার্ভার সফলভাবে চলছে (ES Modules)!',
     timestamp: new Date().toISOString(),
   });
 });
 
 // Routes
-const bookRoutes = require('./routes/bookRoutes');
-const borrowRoutes = require('./routes/borrowRoutes');
-const reviewRoutes = require('./routes/reviewRoutes');
-const authRoutes = require('./routes/authRoutes');
-
 app.use('/auth', authRoutes);
 app.use('/books', bookRoutes);
 app.use('/borrows', borrowRoutes);
@@ -62,7 +62,7 @@ app.use('/reviews', reviewRoutes);
 app.use(errorHandler);
 
 app.listen(PORT, () => {
-  console.log(`🚀 BoiGhuri সার্ভার চালু হয়েছে পোর্ট: ${PORT}`);
+  console.log(`🚀 BoiGhuri সার্ভার চালু হয়েছে পোর্ট: ${PORT} (ES Modules)`);
 });
 
-module.exports = app;
+export default app;

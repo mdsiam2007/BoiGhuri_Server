@@ -1,12 +1,13 @@
-const express = require('express');
-const router = express.Router();
-const {
+import express from 'express';
+import {
   getBookReviews,
   addReview,
   updateReview,
   deleteReview,
-} = require('../controllers/reviewController');
-const verifyToken = require('../middlewares/verifyToken');
+} from '../controllers/reviewController.js';
+import verifyToken from '../middlewares/verifyToken.js';
+
+const router = express.Router();
 
 // Public route to view reviews
 router.get('/', getBookReviews);
@@ -17,4 +18,4 @@ router.post('/', verifyToken, addReview);
 router.patch('/:id', verifyToken, updateReview);
 router.delete('/:id', verifyToken, deleteReview);
 
-module.exports = router;
+export default router;

@@ -1,11 +1,11 @@
-const mongoose = require('mongoose');
-const Borrow = require('../models/Borrow');
-const Book = require('../models/Book');
+import mongoose from 'mongoose';
+import Borrow from '../models/Borrow.js';
+import Book from '../models/Book.js';
 
 // @desc    Borrow a book
 // @route   POST /borrows
 // @access  Private (JWT)
-const borrowBook = async (req, res) => {
+export const borrowBook = async (req, res) => {
   try {
     const { bookId, returnDate } = req.body;
     const userEmail = req.user.email.toLowerCase().trim();
@@ -82,7 +82,7 @@ const borrowBook = async (req, res) => {
 // @desc    Get borrows of the logged in user
 // @route   GET /borrows
 // @access  Private (JWT)
-const getMyBorrows = async (req, res) => {
+export const getMyBorrows = async (req, res) => {
   try {
     const userEmail = req.user.email.toLowerCase().trim();
 
@@ -109,7 +109,7 @@ const getMyBorrows = async (req, res) => {
 // @desc    Return a book (DELETE /borrows/:id)
 // @route   DELETE /borrows/:id
 // @access  Private (JWT)
-const returnBook = async (req, res) => {
+export const returnBook = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -155,10 +155,4 @@ const returnBook = async (req, res) => {
       message: 'বই ফেরত দিতে সমস্যা হয়েছে: ' + error.message,
     });
   }
-};
-
-module.exports = {
-  borrowBook,
-  getMyBorrows,
-  returnBook,
 };

@@ -1,13 +1,14 @@
-const express = require('express');
-const router = express.Router();
-const {
+import express from 'express';
+import {
   getAllBooks,
   getBookById,
   createBook,
   updateBook,
   deleteBook,
-} = require('../controllers/bookController');
-const verifyToken = require('../middlewares/verifyToken');
+} from '../controllers/bookController.js';
+import verifyToken from '../middlewares/verifyToken.js';
+
+const router = express.Router();
 
 // Public routes
 router.get('/', getAllBooks);
@@ -18,4 +19,4 @@ router.post('/', verifyToken, createBook);
 router.patch('/:id', verifyToken, updateBook);
 router.delete('/:id', verifyToken, deleteBook);
 
-module.exports = router;
+export default router;

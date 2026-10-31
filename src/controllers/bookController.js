@@ -1,10 +1,10 @@
-const mongoose = require('mongoose');
-const Book = require('../models/Book');
+import mongoose from 'mongoose';
+import Book from '../models/Book.js';
 
 // @desc    Get all books (with optional sort, limit, category, search, userEmail filters)
 // @route   GET /books
 // @access  Public
-const getAllBooks = async (req, res) => {
+export const getAllBooks = async (req, res) => {
   try {
     const { limit, sort, category, search, userEmail } = req.query;
 
@@ -68,7 +68,7 @@ const getAllBooks = async (req, res) => {
 // @desc    Get single book by ID
 // @route   GET /books/:id
 // @access  Public
-const getBookById = async (req, res) => {
+export const getBookById = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -103,7 +103,7 @@ const getBookById = async (req, res) => {
 // @desc    Add a new book
 // @route   POST /books
 // @access  Private (JWT)
-const createBook = async (req, res) => {
+export const createBook = async (req, res) => {
   try {
     const { title, author, category, image, description, totalCopies } = req.body;
 
@@ -141,7 +141,7 @@ const createBook = async (req, res) => {
 // @desc    Update a book
 // @route   PATCH /books/:id
 // @access  Private (Owner only)
-const updateBook = async (req, res) => {
+export const updateBook = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -196,7 +196,7 @@ const updateBook = async (req, res) => {
 // @desc    Delete a book
 // @route   DELETE /books/:id
 // @access  Private (Owner only)
-const deleteBook = async (req, res) => {
+export const deleteBook = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -236,12 +236,4 @@ const deleteBook = async (req, res) => {
       message: 'বই মুছে ফেলতে ব্যর্থ: ' + error.message,
     });
   }
-};
-
-module.exports = {
-  getAllBooks,
-  getBookById,
-  createBook,
-  updateBook,
-  deleteBook,
 };

@@ -1,9 +1,11 @@
-const jwt = require('jsonwebtoken');
+import jwt from 'jsonwebtoken';
+import Book from '../models/Book.js';
+import Review from '../models/Review.js';
 
 // @desc    Generate JWT token for authenticated user
 // @route   POST /auth/jwt
 // @access  Public (called after BetterAuth authentication)
-const createJwtToken = async (req, res) => {
+export const createJwtToken = async (req, res) => {
   try {
     const { email, name, image } = req.body;
 
@@ -24,7 +26,7 @@ const createJwtToken = async (req, res) => {
       expiresIn: '7d',
     });
 
-    // Also set httpOnly cookie for convenience
+    // Set httpOnly cookie
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -45,10 +47,67 @@ const createJwtToken = async (req, res) => {
   }
 };
 
+// @desc    Update user profile name (User permission to edit their name)
+// @route   PATCH /auth/profile
+// @access  Private (JWT)
+export const updateProfileName = async (req, res) => {
+  try {
+    const { name, image } = req.body;
+    const userEmail = req.user.email.toLowerCase().trim();
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'নাম খালি রাখা যাবে না!',
+      });
+    }
+
+    const updatedName = name.trim();
+    const updatedImage = image !== undefined ? image : req.user.image;
+
+    // Update user's name across their added books and reviews
+    await Book.updateMany({ userEmail }, { $set: { userName: updatedName } });
+    await Review.updateMany(
+      { userEmail },
+      { $set: { userName: updatedName, ...(image && { userImage: updatedImage }) } }
+    );
+
+    // Create a fresh JWT token with the new name
+    const newPayload = {
+      email: userEmail,
+      name: updatedName,
+      image: updatedImage || '',
+    };
+
+    const token = jwt.sign(newPayload, process.env.JWT_SECRET, {
+      expiresIn: '7d',
+    });
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'আপনার নাম সফলভাবে পরিবর্তন করা হয়েছে!',
+      user: newPayload,
+      token,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'প্রোফাইল আপডেট করতে সমস্যা হয়েছে: ' + error.message,
+    });
+  }
+};
+
 // @desc    Clear JWT token
 // @route   POST /auth/logout
 // @access  Public
-const clearJwtToken = (req, res) => {
+export const clearJwtToken = (req, res) => {
   res.clearCookie('token', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -59,9 +118,4 @@ const clearJwtToken = (req, res) => {
     success: true,
     message: 'লগআউট সফল হয়েছে!',
   });
-};
-
-module.exports = {
-  createJwtToken,
-  clearJwtToken,
 };

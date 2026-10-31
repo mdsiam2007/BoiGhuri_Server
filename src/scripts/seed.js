@@ -1,6 +1,6 @@
-require('dotenv').config();
-const mongoose = require('mongoose');
-const Book = require('../models/Book');
+import 'dotenv/config';
+import mongoose from 'mongoose';
+import Book from '../models/Book.js';
 
 const seedBooks = [
   {
@@ -67,8 +67,9 @@ const seedBooks = [
 
 const seedDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
-    console.log('🍃 MongoDB Connected for Seeding...');
+    const dbName = process.env.DB_NAME || 'boighuri';
+    await mongoose.connect(process.env.MONGODB_URI, { dbName });
+    console.log(`🍃 MongoDB Connected for Seeding (DB: ${dbName})...`);
 
     const count = await Book.countDocuments();
     if (count === 0) {

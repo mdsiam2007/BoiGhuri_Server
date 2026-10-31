@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const bookSchema = new mongoose.Schema(
   {
@@ -55,4 +55,5 @@ const bookSchema = new mongoose.Schema(
 bookSchema.index({ title: 'text', author: 'text' });
 bookSchema.index({ createdAt: -1 });
 
-module.exports = mongoose.model('Book', bookSchema);
+const Book = mongoose.model('Book', bookSchema);
+export default Book;

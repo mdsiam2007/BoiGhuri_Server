@@ -1,8 +1,15 @@
-const express = require('express');
+import express from 'express';
+import {
+  createJwtToken,
+  clearJwtToken,
+  updateProfileName,
+} from '../controllers/authController.js';
+import verifyToken from '../middlewares/verifyToken.js';
+
 const router = express.Router();
-const { createJwtToken, clearJwtToken } = require('../controllers/authController');
 
 router.post('/jwt', createJwtToken);
 router.post('/logout', clearJwtToken);
+router.patch('/profile', verifyToken, updateProfileName);
 
-module.exports = router;
+export default router;

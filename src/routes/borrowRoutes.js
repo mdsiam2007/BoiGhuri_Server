@@ -1,11 +1,12 @@
-const express = require('express');
-const router = express.Router();
-const {
+import express from 'express';
+import {
   borrowBook,
   getMyBorrows,
   returnBook,
-} = require('../controllers/borrowController');
-const verifyToken = require('../middlewares/verifyToken');
+} from '../controllers/borrowController.js';
+import verifyToken from '../middlewares/verifyToken.js';
+
+const router = express.Router();
 
 // All borrow routes are protected with JWT
 router.use(verifyToken);
@@ -14,4 +15,4 @@ router.post('/', borrowBook);
 router.get('/', getMyBorrows);
 router.delete('/:id', returnBook);
 
-module.exports = router;
+export default router;
