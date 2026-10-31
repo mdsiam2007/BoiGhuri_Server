@@ -100,7 +100,148 @@ const getBookById = async (req, res) => {
   }
 };
 
+// @desc    Add a new book
+// @route   POST /books
+// @access  Private (JWT)
+const createBook = async (req, res) => {
+  try {
+    const { title, author, category, image, description, totalCopies } = req.body;
+
+    if (!title || !author || !category || !image || !description) {
+      return res.status(400).json({
+        success: false,
+        message: 'অনুগ্রহ করে সকল আবশ্যকীয় তথ্য পূরণ করুন!',
+      });
+    }
+
+    const newBook = await Book.create({
+      title,
+      author,
+      category,
+      image,
+      description,
+      totalCopies: Number(totalCopies) >= 0 ? Number(totalCopies) : 1,
+      userEmail: req.user.email,
+      userName: req.user.name || 'Anonymous',
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'বইটি সফলভাবে সংগ্রহে যুক্ত করা হয়েছে!',
+      data: newBook,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'বই যোগ করতে সমস্যা হয়েছে: ' + error.message,
+    });
+  }
+};
+
+// @desc    Update a book
+// @route   PATCH /books/:id
+// @access  Private (Owner only)
+const updateBook = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'অকার্যকর বুক আইডি!',
+      });
+    }
+
+    const book = await Book.findById(id);
+
+    if (!book) {
+      return res.status(404).json({
+        success: false,
+        message: 'বইটি খুঁজে পাওয়া যায়নি!',
+      });
+    }
+
+    // Owner check
+    if (book.userEmail.toLowerCase() !== req.user.email.toLowerCase()) {
+      return res.status(403).json({
+        success: false,
+        message: 'অনধিকার চর্চা! আপনি শুধুমাত্র নিজের যোগ করা বই এডিট করতে পারবেন।',
+      });
+    }
+
+    const { title, author, category, image, description, totalCopies } = req.body;
+
+    if (title) book.title = title;
+    if (author) book.author = author;
+    if (category) book.category = category;
+    if (image) book.image = image;
+    if (description) book.description = description;
+    if (totalCopies !== undefined) book.totalCopies = Math.max(0, Number(totalCopies));
+
+    const updatedBook = await book.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'বইটির তথ্য সফলভাবে আপডেট করা হয়েছে!',
+      data: updatedBook,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'বই আপডেট করতে ব্যর্থ: ' + error.message,
+    });
+  }
+};
+
+// @desc    Delete a book
+// @route   DELETE /books/:id
+// @access  Private (Owner only)
+const deleteBook = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'অকার্যকর বুক আইডি!',
+      });
+    }
+
+    const book = await Book.findById(id);
+
+    if (!book) {
+      return res.status(404).json({
+        success: false,
+        message: 'বইটি খুঁজে পাওয়া যায়নি!',
+      });
+    }
+
+    // Owner check
+    if (book.userEmail.toLowerCase() !== req.user.email.toLowerCase()) {
+      return res.status(403).json({
+        success: false,
+        message: 'অনধিকার চর্চা! আপনি শুধুমাত্র নিজের যোগ করা বই মুছে ফেলতে পারবেন।',
+      });
+    }
+
+    await Book.findByIdAndDelete(id);
+
+    res.status(200).json({
+      success: true,
+      message: 'বইটি সফলভাবে সংগ্রহ থেকে মুছে ফেলা হয়েছে!',
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'বই মুছে ফেলতে ব্যর্থ: ' + error.message,
+    });
+  }
+};
+
 module.exports = {
   getAllBooks,
   getBookById,
+  createBook,
+  updateBook,
+  deleteBook,
 };
