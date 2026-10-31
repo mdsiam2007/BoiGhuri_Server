@@ -47,10 +47,9 @@ app.get('/', (req, res) => {
   });
 });
 
-// Routes will be mounted here
-// app.use('/books', bookRoutes);
-// app.use('/borrows', borrowRoutes);
-// app.use('/reviews', reviewRoutes);
+// Routes
+const bookRoutes = require('./routes/bookRoutes');
+app.use('/books', bookRoutes);
 
 // Global Error Handler
 app.use(errorHandler);
