@@ -3,7 +3,7 @@ import { getBooksCollection, getReviewsCollection } from '../config/collections.
 
 // @desc    Generate JWT token for authenticated user
 // @route   POST /auth/jwt
-// @access  Public (called after BetterAuth authentication)
+// @access  Public
 export const createJwtToken = async (req, res) => {
   try {
     const { email, name, image } = req.body;
@@ -11,7 +11,7 @@ export const createJwtToken = async (req, res) => {
     if (!email) {
       return res.status(400).json({
         success: false,
-        message: 'ইমেইল আবশ্যক!',
+        message: 'Email is required',
       });
     }
 
@@ -40,12 +40,12 @@ export const createJwtToken = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'টোকেন তৈরিতে ব্যর্থ: ' + error.message,
+      message: 'Failed to generate token: ' + error.message,
     });
   }
 };
 
-// @desc    Update user profile name (User permission to edit their name)
+// @desc    Update user profile name and image
 // @route   PATCH /auth/profile
 // @access  Private (JWT)
 export const updateProfileName = async (req, res) => {
@@ -59,7 +59,7 @@ export const updateProfileName = async (req, res) => {
     if (!name || !name.trim()) {
       return res.status(400).json({
         success: false,
-        message: 'নাম খালি রাখা যাবে না!',
+        message: 'Name cannot be empty',
       });
     }
 
@@ -97,14 +97,14 @@ export const updateProfileName = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'আপনার নাম সফলভাবে পরিবর্তন করা হয়েছে!',
+      message: 'Profile updated successfully',
       user: newPayload,
       token,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'প্রোফাইল আপডেট করতে সমস্যা হয়েছে: ' + error.message,
+      message: 'Failed to update profile: ' + error.message,
     });
   }
 };
@@ -121,6 +121,6 @@ export const clearJwtToken = (req, res) => {
 
   res.status(200).json({
     success: true,
-    message: 'লগআউট সফল হয়েছে!',
+    message: 'Logged out successfully',
   });
 };

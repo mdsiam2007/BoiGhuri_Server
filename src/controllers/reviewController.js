@@ -1,5 +1,9 @@
 import { ObjectId } from 'mongodb';
-import { getReviewsCollection, getBooksCollection } from '../config/collections.js';
+import {
+  getReviewsCollection,
+  getBooksCollection,
+  getBorrowsCollection,
+} from '../config/collections.js';
 
 // @desc    Get all reviews for a book
 // @route   GET /reviews?bookId=:bookId or GET /books/:bookId/reviews
@@ -12,7 +16,7 @@ export const getBookReviews = async (req, res) => {
     if (!bookId || !ObjectId.isValid(bookId)) {
       return res.status(400).json({
         success: false,
-        message: 'বৈধ বুক আইডি আবশ্যক!',
+        message: 'Valid book ID is required',
       });
     }
 
@@ -39,18 +43,19 @@ export const getBookReviews = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'রিভিউ লোড করতে ব্যর্থ: ' + error.message,
+      message: 'Failed to fetch reviews: ' + error.message,
     });
   }
 };
 
-// @desc    Add a review for a book
+// @desc    Add a review for a book (Must have borrowed the book)
 // @route   POST /reviews
 // @access  Private (JWT required)
 export const addReview = async (req, res) => {
   try {
     const reviewsCollection = getReviewsCollection();
     const booksCollection = getBooksCollection();
+    const borrowsCollection = getBorrowsCollection();
 
     const { bookId, rating, comment } = req.body;
     const userEmail = req.user.email.toLowerCase().trim();
@@ -60,14 +65,14 @@ export const addReview = async (req, res) => {
     if (!bookId || !rating || !comment) {
       return res.status(400).json({
         success: false,
-        message: 'বুক আইডি, রেটিং ও মন্তব্য প্রদান করা আবশ্যক!',
+        message: 'Book ID, rating and comment are required',
       });
     }
 
     if (!ObjectId.isValid(bookId)) {
       return res.status(400).json({
         success: false,
-        message: 'অকার্যকর বুক আইডি!',
+        message: 'Invalid book ID',
       });
     }
 
@@ -75,7 +80,7 @@ export const addReview = async (req, res) => {
     if (isNaN(numericRating) || numericRating < 1 || numericRating > 5) {
       return res.status(400).json({
         success: false,
-        message: 'রেটিং অবশ্যই ১ থেকে ৫ এর মধ্যে হতে হবে!',
+        message: 'Rating must be a number between 1 and 5',
       });
     }
 
@@ -86,7 +91,20 @@ export const addReview = async (req, res) => {
     if (!book) {
       return res.status(404).json({
         success: false,
-        message: 'বইটি খুঁজে পাওয়া যায়নি!',
+        message: 'Book not found',
+      });
+    }
+
+    // Constraint: User MUST have borrowed the book to submit a review
+    const hasBorrowed = await borrowsCollection.findOne({
+      bookId: bookObjectId,
+      userEmail,
+    });
+
+    if (!hasBorrowed) {
+      return res.status(403).json({
+        success: false,
+        message: 'You must borrow this book before you can submit a review.',
       });
     }
 
@@ -99,7 +117,7 @@ export const addReview = async (req, res) => {
     if (existingReview) {
       return res.status(400).json({
         success: false,
-        message: 'আপনি ইতিমধ্যে এই বইটিতে একটি রিভিউ দিয়েছেন! চাইলে পূর্বের রিভিউটি এডিট করতে পারেন।',
+        message: 'You have already submitted a review for this book. You can edit your existing review.',
       });
     }
 
@@ -119,7 +137,7 @@ export const addReview = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'আপনার রিভিউ সফলভাবে প্রকাশ করা হয়েছে!',
+      message: 'Review submitted successfully',
       data: {
         _id: insertResult.insertedId,
         ...reviewDoc,
@@ -128,7 +146,7 @@ export const addReview = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'রিভিউ প্রকাশ করতে সমস্যা হয়েছে: ' + error.message,
+      message: 'Failed to submit review: ' + error.message,
     });
   }
 };
@@ -146,7 +164,7 @@ export const updateReview = async (req, res) => {
     if (!ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
-        message: 'অকার্যকর রিভিউ আইডি!',
+        message: 'Invalid review ID',
       });
     }
 
@@ -155,14 +173,14 @@ export const updateReview = async (req, res) => {
     if (!review) {
       return res.status(404).json({
         success: false,
-        message: 'রিভিউটি পাওয়া যায়নি!',
+        message: 'Review not found',
       });
     }
 
     if (review.userEmail.toLowerCase() !== userEmail) {
       return res.status(403).json({
         success: false,
-        message: 'অনধিকার চর্চা! আপনি শুধুমাত্র নিজের দেওয়া রিভিউ এডিট করতে পারবেন।',
+        message: 'Forbidden. You can only edit your own reviews.',
       });
     }
 
@@ -176,7 +194,7 @@ export const updateReview = async (req, res) => {
       if (isNaN(numericRating) || numericRating < 1 || numericRating > 5) {
         return res.status(400).json({
           success: false,
-          message: 'রেটিং অবশ্যই ১ থেকে ৫ এর মধ্যে হতে হবে!',
+          message: 'Rating must be a number between 1 and 5',
         });
       }
       updateFields.rating = numericRating;
@@ -195,13 +213,13 @@ export const updateReview = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'রিভিউ সফলভাবে আপডেট করা হয়েছে!',
+      message: 'Review updated successfully',
       data: updatedReview,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'রিভিউ আপডেট করতে ব্যর্থ: ' + error.message,
+      message: 'Failed to update review: ' + error.message,
     });
   }
 };
@@ -218,7 +236,7 @@ export const deleteReview = async (req, res) => {
     if (!ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
-        message: 'অকার্যকর রিভিউ আইডি!',
+        message: 'Invalid review ID',
       });
     }
 
@@ -227,14 +245,14 @@ export const deleteReview = async (req, res) => {
     if (!review) {
       return res.status(404).json({
         success: false,
-        message: 'রিভিউটি পাওয়া যায়নি!',
+        message: 'Review not found',
       });
     }
 
     if (review.userEmail.toLowerCase() !== userEmail) {
       return res.status(403).json({
         success: false,
-        message: 'অনধিকার চর্চা! আপনি শুধুমাত্র নিজের দেওয়া রিভিউ ডিলিট করতে পারবেন।',
+        message: 'Forbidden. You can only delete your own reviews.',
       });
     }
 
@@ -242,12 +260,12 @@ export const deleteReview = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'রিভিউ সফলভাবে মুছে ফেলা হয়েছে!',
+      message: 'Review deleted successfully',
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'রিভিউ মুছে ফেলতে ব্যর্থ: ' + error.message,
+      message: 'Failed to delete review: ' + error.message,
     });
   }
 };

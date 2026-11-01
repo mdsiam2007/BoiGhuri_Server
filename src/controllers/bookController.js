@@ -1,7 +1,7 @@
 import { ObjectId } from 'mongodb';
 import { getBooksCollection } from '../config/collections.js';
 
-// @desc    Get all books (with optional sort, limit, category, search, userEmail filters)
+// @desc    Get all books with optional filters (category, search, sort, userEmail, limit)
 // @route   GET /books
 // @access  Public
 export const getAllBooks = async (req, res) => {
@@ -26,7 +26,6 @@ export const getAllBooks = async (req, res) => {
       ];
     }
 
-    // Default newest first: sort by createdAt descending
     let sortOption = { createdAt: -1 };
     if (sort === 'oldest') {
       sortOption = { createdAt: 1 };
@@ -57,7 +56,7 @@ export const getAllBooks = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'বই লোড করতে সমস্যা হয়েছে: ' + error.message,
+      message: 'Failed to fetch books: ' + error.message,
     });
   }
 };
@@ -73,7 +72,7 @@ export const getBookById = async (req, res) => {
     if (!ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
-        message: 'অকার্যকর বুক আইডি!',
+        message: 'Invalid book ID',
       });
     }
 
@@ -82,7 +81,7 @@ export const getBookById = async (req, res) => {
     if (!book) {
       return res.status(404).json({
         success: false,
-        message: 'বইটি খুঁজে পাওয়া যায়নি!',
+        message: 'Book not found',
       });
     }
 
@@ -93,7 +92,7 @@ export const getBookById = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'বইয়ের বিবরণ আনতে ত্রুটি: ' + error.message,
+      message: 'Failed to fetch book details: ' + error.message,
     });
   }
 };
@@ -109,7 +108,7 @@ export const createBook = async (req, res) => {
     if (!title || !author || !category || !image || !description) {
       return res.status(400).json({
         success: false,
-        message: 'অনুগ্রহ করে সকল আবশ্যকীয় তথ্য পূরণ করুন!',
+        message: 'All required fields must be provided',
       });
     }
 
@@ -130,7 +129,7 @@ export const createBook = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'বইটি সফলভাবে সংগ্রহে যুক্ত করা হয়েছে!',
+      message: 'Book created successfully',
       data: {
         _id: result.insertedId,
         ...newBookDoc,
@@ -139,7 +138,7 @@ export const createBook = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'বই যোগ করতে সমস্যা হয়েছে: ' + error.message,
+      message: 'Failed to create book: ' + error.message,
     });
   }
 };
@@ -155,7 +154,7 @@ export const updateBook = async (req, res) => {
     if (!ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
-        message: 'অকার্যকর বুক আইডি!',
+        message: 'Invalid book ID',
       });
     }
 
@@ -164,14 +163,14 @@ export const updateBook = async (req, res) => {
     if (!book) {
       return res.status(404).json({
         success: false,
-        message: 'বইটি খুঁজে পাওয়া যায়নি!',
+        message: 'Book not found',
       });
     }
 
     if (book.userEmail.toLowerCase() !== req.user.email.toLowerCase()) {
       return res.status(403).json({
         success: false,
-        message: 'অনধিকার চর্চা! আপনি শুধুমাত্র নিজের যোগ করা বই এডিট করতে পারবেন।',
+        message: 'Forbidden. You can only update books you created.',
       });
     }
 
@@ -197,13 +196,13 @@ export const updateBook = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'বইটির তথ্য সফলভাবে আপডেট করা হয়েছে!',
+      message: 'Book updated successfully',
       data: updatedBook,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'বই আপডেট করতে ব্যর্থ: ' + error.message,
+      message: 'Failed to update book: ' + error.message,
     });
   }
 };
@@ -219,7 +218,7 @@ export const deleteBook = async (req, res) => {
     if (!ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
-        message: 'অকার্যকর বুক আইডি!',
+        message: 'Invalid book ID',
       });
     }
 
@@ -228,14 +227,14 @@ export const deleteBook = async (req, res) => {
     if (!book) {
       return res.status(404).json({
         success: false,
-        message: 'বইটি খুঁজে পাওয়া যায়নি!',
+        message: 'Book not found',
       });
     }
 
     if (book.userEmail.toLowerCase() !== req.user.email.toLowerCase()) {
       return res.status(403).json({
         success: false,
-        message: 'অনধিকার চর্চা! আপনি শুধুমাত্র নিজের যোগ করা বই মুছে ফেলতে পারবেন।',
+        message: 'Forbidden. You can only delete books you created.',
       });
     }
 
@@ -243,12 +242,12 @@ export const deleteBook = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'বইটি সফলভাবে সংগ্রহ থেকে মুছে ফেলা হয়েছে!',
+      message: 'Book deleted successfully',
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'বই মুছে ফেলতে ব্যর্থ: ' + error.message,
+      message: 'Failed to delete book: ' + error.message,
     });
   }
 };

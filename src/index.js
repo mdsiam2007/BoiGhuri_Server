@@ -12,14 +12,15 @@ import reviewRoutes from './routes/reviewRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 
 const app = express();
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 5000;
 
-// Connect to MongoDB using native driver
+// Connect to MongoDB
 await connectDB();
 
-// Middlewares
+// CORS Configuration
 const allowedOrigins = [
   'http://localhost:3000',
+  'http://127.0.0.1:3000',
   process.env.CLIENT_URL,
 ].filter(Boolean);
 
@@ -29,7 +30,7 @@ app.use(
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error('CORS দ্বারা রিকোয়েস্ট ব্লক করা হয়েছে'));
+        callback(new Error('Blocked by CORS policy'));
       }
     },
     credentials: true,
@@ -39,31 +40,31 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
 if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
 }
 
-// Health check route
+// Health check endpoint
 app.get('/', (req, res) => {
   res.json({
     success: true,
-    message: '📚 BoiGhuri (বইঘুরি) API সার্ভার সফলভাবে চলছে (Native MongoDB Driver)!',
-    database: process.env.DB_NAME,
+    message: 'BoiGhuri API server is running',
     timestamp: new Date().toISOString(),
   });
 });
 
-// Routes
+// Route Handlers
 app.use('/auth', authRoutes);
 app.use('/books', bookRoutes);
 app.use('/borrows', borrowRoutes);
 app.use('/reviews', reviewRoutes);
 
-// Global Error Handler
+// Error handling middleware
 app.use(errorHandler);
 
 app.listen(PORT, () => {
-  console.log(`🚀 BoiGhuri সার্ভার চালু হয়েছে পোর্ট: ${PORT} (Native MongoDB Driver & ES Modules)`);
+  console.log(`Server listening on port ${PORT}`);
 });
 
 export default app;

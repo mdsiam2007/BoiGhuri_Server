@@ -16,20 +16,20 @@ export const borrowBook = async (req, res) => {
     if (!bookId || !returnDate) {
       return res.status(400).json({
         success: false,
-        message: 'বই আইডি এবং ফেরত দেওয়ার তারিখ আবশ্যক!',
+        message: 'Book ID and return date are required',
       });
     }
 
     if (!ObjectId.isValid(bookId)) {
       return res.status(400).json({
         success: false,
-        message: 'অকার্যকর বুক আইডি!',
+        message: 'Invalid book ID',
       });
     }
 
     const bookObjectId = new ObjectId(bookId);
 
-    // Challenge 2: No Double Borrow check
+    // Prevent double borrowing
     const existingBorrow = await borrowsCollection.findOne({
       bookId: bookObjectId,
       userEmail,
@@ -39,11 +39,11 @@ export const borrowBook = async (req, res) => {
     if (existingBorrow) {
       return res.status(400).json({
         success: false,
-        message: 'আপনি ইতিমধ্যে এই বইটি ধার নিয়েছেন! ফেরত না দেওয়া পর্যন্ত পুনরায় নিতে পারবেন না।',
+        message: 'You have already borrowed this book. Please return it before borrowing again.',
       });
     }
 
-    // Challenge 1: Decrease available copies by 1 with $inc if totalCopies > 0
+    // Decrement available copies by 1 atomically if totalCopies > 0
     const updateResult = await booksCollection.findOneAndUpdate(
       { _id: bookObjectId, totalCopies: { $gt: 0 } },
       { $inc: { totalCopies: -1 } },
@@ -55,11 +55,10 @@ export const borrowBook = async (req, res) => {
     if (!updatedBook || updatedBook.totalCopies < 0) {
       return res.status(400).json({
         success: false,
-        message: 'দুঃখিত, এই বইটির কোনো কপি বর্তমানে লাইব্রেরিতে অবশিষ্ট নেই!',
+        message: 'Sorry, no copies of this book are currently available in the library.',
       });
     }
 
-    // Create borrow record
     const borrowDoc = {
       bookId: bookObjectId,
       bookTitle: updatedBook.title,
@@ -76,7 +75,7 @@ export const borrowBook = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: `"${updatedBook.title}" বইটি সফলভাবে ধার নেওয়া হয়েছে!`,
+      message: `"${updatedBook.title}" borrowed successfully`,
       data: {
         _id: insertResult.insertedId,
         ...borrowDoc,
@@ -86,7 +85,7 @@ export const borrowBook = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'বই ধার নিতে সমস্যা হয়েছে: ' + error.message,
+      message: 'Failed to borrow book: ' + error.message,
     });
   }
 };
@@ -115,12 +114,12 @@ export const getMyBorrows = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'ধার করা বইয়ের তালিকা আনতে ব্যর্থ: ' + error.message,
+      message: 'Failed to fetch borrowed books: ' + error.message,
     });
   }
 };
 
-// @desc    Return a book (DELETE /borrows/:id)
+// @desc    Return a book
 // @route   DELETE /borrows/:id
 // @access  Private (JWT)
 export const returnBook = async (req, res) => {
@@ -132,7 +131,7 @@ export const returnBook = async (req, res) => {
     if (!ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
-        message: 'অকার্যকর বরো আইডি!',
+        message: 'Invalid borrow ID',
       });
     }
 
@@ -141,35 +140,35 @@ export const returnBook = async (req, res) => {
     if (!borrowRecord) {
       return res.status(404).json({
         success: false,
-        message: 'ধার নেওয়ার রেকর্ডটি পাওয়া যায়নি!',
+        message: 'Borrow record not found',
       });
     }
 
-    // Owner check
+    // Verify ownership
     if (borrowRecord.userEmail.toLowerCase() !== req.user.email.toLowerCase()) {
       return res.status(403).json({
         success: false,
-        message: 'অনধিকার চর্চা! আপনি শুধুমাত্র আপনার ধার করা বই ফেরত দিতে পারবেন।',
+        message: 'Forbidden. You can only return books you borrowed.',
       });
     }
 
-    // Challenge 1: Increase available copies by 1 with $inc
+    // Increment available copies by 1 atomically
     await booksCollection.updateOne(
       { _id: new ObjectId(borrowRecord.bookId) },
       { $inc: { totalCopies: 1 } }
     );
 
-    // Delete the borrow record from database
+    // Delete borrow record upon return
     await borrowsCollection.deleteOne({ _id: new ObjectId(id) });
 
     res.status(200).json({
       success: true,
-      message: `"${borrowRecord.bookTitle}" বইটি সফলভাবে লাইব্রেরিতে ফেরত দেওয়া হয়েছে!`,
+      message: `"${borrowRecord.bookTitle}" returned successfully`,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'বই ফেরত দিতে সমস্যা হয়েছে: ' + error.message,
+      message: 'Failed to return book: ' + error.message,
     });
   }
 };
