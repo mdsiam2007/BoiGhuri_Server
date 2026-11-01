@@ -1,79 +1,156 @@
-# 📚 BoiGhuri Server — বইঘুরি ব্যাকএন্ড এপিআই
+<div align="center">
 
-বইঘুরি (BoiGhuri) অনলাইন লাইব্রেরি প্ল্যাটফর্মের অফিসিয়াল ব্যাকএন্ড সার্ভিস। এটি Node.js, Express.js এবং অফিসিয়াল **Native MongoDB Driver (`mongodb` প্যাকেজ)** দিয়ে নির্মিত একটি সম্পূর্ণ RESTful API সার্ভিস (ES Modules)।
+# ⚙️ BoiGhuri Server — Express.js & Native MongoDB API
 
----
+[![Node.js](https://img.shields.io/badge/Node.js-v20+-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Express.js](https://img.shields.io/badge/Express.js-v4.21+-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Native_Driver-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+[![JWT](https://img.shields.io/badge/JWT-Protected-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white)](https://jwt.io/)
+[![ES Modules](https://img.shields.io/badge/ES_Modules-Enabled-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](https://nodejs.org/api/esm.html)
 
-## 🌟 মূল ফিচারসমূহ (Key Features)
-
-- **অফিসিয়াল Native MongoDB Driver:** Mongoose ছাড়া সরাসরি `mongodb` ক্লায়েন্ট (`MongoClient`, `ObjectId`, `db.collection()`) ব্যবহার করে পিএইচ সিলেবাসের সাথে শতভাগ সঙ্গতিপূর্ণ কোডবেস।
-- **ডাইনামিক ডাটাবেস কনফিগারেশন:** `.env` থেকে সরাসরি `DB_NAME` লোড করে নির্দিষ্ট ডাটাবেসের সাথে সংযুক্ত হয়। কোনো হার্ডকোডেড ফলব্যাক নেই।
-- **JWT অথেন্টিকেশন মিডলওয়্যার:** প্রতিটি প্রাইভেট রিকোয়েস্ট এবং ডেটা মডিফিকেশনের জন্য JSON Web Token নিরাপত্তা।
-- **স্বয়ংক্রিয় স্টক ট্র্যাকিং ($inc):** বই ধার নিলে স্টক ১ হ্রাস পায় এবং ফেরত দিলে স্টক ১ বৃদ্ধি পায়।
-- **ডাবল-বরো রোধ (Double Borrow Prevention):** একই ইউজার একটি বই একাধিকবার একই সময়ে ধার নিতে পারে না।
-- **ইউজার নাম এডিট করার সুযোগ:** `PATCH /auth/profile` এর মাধ্যমে ইউজার তার প্রোফাইল নাম পরিবর্তন করতে পারেন এবং তার যুক্ত করা বইগুলোতে স্বয়ংক্রিয়ভাবে আপডেট প্রতিফলিত হয়।
-- **বই রিভিউ ও রেটিং সিস্টেম:** প্রতি বইয়ে একজন ইউজার একটিই রিভিউ দিতে পারে এবং এডিট করলে `(edited)` ব্যাজ ও টাইমস্ট্যাম্প সেট হয়।
-- **CORS & সিকিউরিটি প্রোটেকশন:** নির্দিষ্ট ক্লায়েন্ট অরিজিন ও কুকি সাপোর্ট।
-
----
-
-## 🛠 টেক স্ট্যাক (Tech Stack)
-
-- **রানটাইম:** Node.js
-- **ফ্রেমওয়ার্ক:** Express.js
-- **ডাটাবেস ড্রাইভার:** Native MongoDB Driver (`mongodb`)
-- **মডিউল সিস্টেম:** ES Modules (`type: module`)
-- **অথেনটিকেশন:** JSON Web Token (jsonwebtoken)
-- **মিডলওয়্যার:** CORS, Cookie-Parser, Morgan (Logging)
+<p align="center">
+  <b>High-performance, secure backend RESTful API powering the BoiGhuri online library system.</b>
+  <br />
+  Built with pure <b>ES Modules</b>, official <b>Native MongoDB Driver</b> (Zero Mongoose), atomic <code>$inc</code> stock operations, and stateless <b>JWT</b> authentication.
+</p>
 
 ---
 
-## 📡 এপিআই এন্ডপয়েন্টসমূহ (API Endpoints)
-
-### ১. বই সংক্রান্ত এপিআই (`/books`)
-- `GET /books` — সকল বই প্রদর্শন (ফিল্টার: `limit`, `sort`, `category`, `search`, `userEmail`)
-- `GET /books/:id` — নির্দিষ্ট বইয়ের বিস্তারিত বিবরণ
-- `POST /books` — নতুন বই যোগ করা *(Private / JWT)*
-- `PATCH /books/:id` — নিজের যুক্ত করা বইয়ের তথ্য আপডেট *(Private / JWT)*
-- `DELETE /books/:id` — বই মুছে ফেলা *(Private / JWT)*
-
-### ২. ধার নেওয়া ও ফেরত সংক্রান্ত এপিআই (`/borrows`)
-- `POST /borrows` — বই ধার নেওয়া *(Private / JWT)*
-- `GET /borrows` — বর্তমান ইউজারের ধার করা বইয়ের তালিকা *(Private / JWT)*
-- `DELETE /borrows/:id` — বই ফেরত দেওয়া *(Private / JWT)*
-
-### ৩. রিভিউ ও রেটিং এপিআই (`/reviews`)
-- `GET /reviews?bookId=:id` বা `GET /reviews/:bookId` — বইয়ের সকল রিভিউ ও গড় রেটিং দেখা
-- `POST /reviews` — রিভিউ জমা দেওয়া *(Private / JWT)*
-- `PATCH /reviews/:id` — নিজের রিভিউ এডিট করা *(Private / JWT)*
-- `DELETE /reviews/:id` — নিজের রিভিউ মুছে ফেলা *(Private / JWT)*
-
-### ৪. অথেনটিকেশন ও প্রোফাইল এপিআই (`/auth`)
-- `POST /auth/jwt` — ক্লায়েন্টের সেশনের জন্য JWT টোকেন ইস্যু করা
-- `POST /auth/logout` — টোকেন কুকি ক্লিয়ার করা
-- `PATCH /auth/profile` — ইউজারের প্রোফাইল নাম আপডেট করা *(Private / JWT)*
+🔗 **Frontend Client Repository:** [https://github.com/mdsiam2007/BoiGhuri_Client](https://github.com/mdsiam2007/BoiGhuri_Client)  
+🌐 **Live Client Application:** [https://boighuri-client.vercel.app](https://boighuri-client.vercel.app)
 
 ---
 
-## 🚀 লোকাল সেটআপ ও রান করার নিয়ম
+</div>
 
-১. ডিপেন্ডেন্সি ইনস্টল করুন:
+## 🌟 Key Features & Architectural Highlights
+
+- 🍃 **Native MongoDB Driver (No Mongoose):** Direct high-throughput collection-level queries utilizing connection pooling (`minPoolSize: 2`, `maxPoolSize: 10`) and atomic document manipulation.
+- 🛡️ **JWT Security Middleware:** Secure token generation and verification via `httpOnly` cookies and standard `Authorization: Bearer <token>` headers.
+- ⚡ **Atomic Inventory Tracking (Challenge 1):** Book stock increments and decrements are performed atomically using MongoDB's `$inc` operator (`findOneAndUpdate` with `totalCopies: { $gt: 0 }`), eliminating race conditions during concurrent borrows.
+- 🚫 **Double-Borrow Prevention Engine (Challenge 2):** Real-time verification ensuring a user cannot borrow the same book concurrently without returning it first.
+- ⭐ **Reader Review & Rating Engine:** Authenticated reader review management with a strict **borrow-before-review** policy, single review per user constraint, and real-time average rating calculation.
+- 📚 **Comprehensive Seed System:** Automated seeding utility generating 40 authentic books with authentic Open Library covers, authors, and summaries.
+- 🌐 **Clean ES Modules & Pure English Codebase:** Modern `"type": "module"` architecture with standardized English logs, comments, and consistent JSON responses.
+
+---
+
+## 📡 Complete RESTful API Endpoints
+
+### 🔐 Authentication & Profile (`/auth`)
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/auth/jwt` | Public | Generate JWT token and set `httpOnly` cookie |
+| `PATCH` | `/auth/profile` | Private (JWT) | Update user display name and profile image across books & reviews |
+| `POST` | `/auth/logout` | Public | Clear JWT authentication cookie |
+
+### 📚 Books Management (`/books`)
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/books` | Public | Fetch all books with optional filters (`category`, `search`, `sort`, `limit`, `userEmail`) |
+| `GET` | `/books/:id` | Public | Fetch a single book's complete details by ID |
+| `POST` | `/books` | Private (JWT) | Add a new book to the library catalog |
+| `PATCH` | `/books/:id` | Private (Owner) | Update an existing book (owner only) |
+| `DELETE` | `/books/:id` | Private (Owner) | Delete a book from catalog (owner only) |
+
+### 📖 Borrow System (`/borrows`)
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/borrows` | Private (JWT) | Borrow a book, atomically decrement available copies (`$inc: -1`), and prevent double borrows |
+| `GET` | `/borrows` | Private (JWT) | Retrieve all active borrowed books of the authenticated user |
+| `DELETE` | `/borrows/:id` | Private (Owner) | Return a borrowed book, atomically increment available copies (`$inc: +1`), and remove borrow record |
+
+### ⭐ Reviews & Ratings (`/reviews`)
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/reviews?bookId=:id` | Public | Fetch all reader reviews and calculated average rating for a book |
+| `POST` | `/reviews` | Private (JWT) | Submit a review (enforces borrow check & 1 review per user) |
+| `PATCH` | `/reviews/:id` | Private (Owner) | Update an existing review with automatic `(edited)` flag |
+| `DELETE` | `/reviews/:id` | Private (Owner) | Delete a review (owner only) |
+
+---
+
+## 🛠️ Environment Configuration
+
+Create a `.env` file in the root directory:
+
+```env
+PORT=5000
+NODE_ENV=development
+CLIENT_URL=http://localhost:3000
+
+# MongoDB Connection URI (Native Driver)
+MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.mongodb.net/?retryWrites=true&w=majority
+DB_NAME=boighuri
+
+# JWT Authentication Secret
+JWT_SECRET=your_super_secret_jwt_key_here
+```
+
+---
+
+## 🚀 Getting Started
+
+### 1. Clone the repository
+```bash
+git clone https://github.com/mdsiam2007/BoiGhuri_Server.git
+cd BoiGhuri_Server
+```
+
+### 2. Install dependencies
 ```bash
 npm install
 ```
 
-২. `.env` ফাইলে আপনার ক্রেডেনশিয়াল কনফিগার করুন:
-```env
-PORT=5000
-NODE_ENV=development
-MONGODB_URI=your_mongodb_connection_uri
-DB_NAME=boighuri
-JWT_SECRET=your_jwt_secret_key
-CLIENT_URL=http://localhost:3000
+### 3. Seed the database with 40 real books
+```bash
+npm run seed
 ```
 
-৩. ডেভেলপমেন্ট সার্ভার চালু করুন:
+### 4. Start the server
 ```bash
+# Development mode with auto-reload
 npm run dev
+
+# Production mode
+npm start
 ```
-সার্ভার `http://localhost:5000` এ রান হবে।
+
+Server will start on `http://localhost:5000`.
+
+---
+
+## 📂 Project Structure
+
+```
+boi-ghuri-server/
+├── src/
+│   ├── config/
+│   │   ├── collections.js     # Native MongoDB collection accessors
+│   │   └── db.js              # MongoClient connection & pooling setup
+│   ├── controllers/
+│   │   ├── authController.js   # JWT generation, profile sync & logout
+│   │   ├── bookController.js   # Full CRUD operations with query filters
+│   │   ├── borrowController.js # Atomic stock tracking & borrow/return
+│   │   └── reviewController.js # Borrow-verified review management
+│   ├── middlewares/
+│   │   ├── errorHandler.js    # Global centralized error handler
+│   │   └── verifyToken.js     # JWT bearer & cookie verification
+│   ├── routes/
+│   │   ├── authRoutes.js      # Auth route mappings
+│   │   ├── bookRoutes.js      # Book route mappings
+│   │   ├── borrowRoutes.js    # Borrow route mappings
+│   │   └── reviewRoutes.js    # Review route mappings
+│   ├── scripts/
+│   │   └── seed.js            # 40 authentic books database seeder
+│   └── index.js               # Express server entry point & CORS
+├── .env.example
+├── package.json
+└── README.md
+```
+
+---
+
+<div align="center">
+  <p>Developed with ❤️ for <b>BoiGhuri (বইঘুরি)</b></p>
+</div>
