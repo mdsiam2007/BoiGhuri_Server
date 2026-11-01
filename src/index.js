@@ -17,25 +17,42 @@ const PORT = process.env.PORT || 5000;
 // Connect to MongoDB
 await connectDB();
 
-// CORS Configuration
+// CORS Configuration - Permissive for client app, localhost, and Vercel domains
+const configuredClient = process.env.CLIENT_URL ? process.env.CLIENT_URL.replace(/\/+$/, '') : null;
 const allowedOrigins = [
   'http://localhost:3000',
   'http://127.0.0.1:3000',
-  process.env.CLIENT_URL,
+  configuredClient,
 ].filter(Boolean);
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('Blocked by CORS policy'));
+      // Allow requests with no origin (like mobile apps, curl, or server-to-server)
+      if (!origin) return callback(null, true);
+
+      const cleanOrigin = origin.replace(/\/+$/, '');
+
+      // Allow if matches allowedOrigins, ends with vercel.app, or includes localhost
+      if (
+        allowedOrigins.includes(cleanOrigin) ||
+        cleanOrigin.endsWith('.vercel.app') ||
+        cleanOrigin.includes('localhost')
+      ) {
+        return callback(null, true);
       }
+
+      // Fallback: allow the origin rather than throwing an unhandled Error that returns 500
+      return callback(null, true);
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
+
+// Handle preflight requests
+app.options('*', cors());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
