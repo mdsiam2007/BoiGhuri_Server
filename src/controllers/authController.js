@@ -1,5 +1,10 @@
 import jwt from 'jsonwebtoken';
-import { getBooksCollection, getReviewsCollection } from '../config/collections.js';
+import {
+  getBooksCollection,
+  getReviewsCollection,
+  getBorrowsCollection,
+  getUsersCollection,
+} from '../config/collections.js';
 
 // @desc    Generate JWT token for authenticated user
 // @route   POST /auth/jwt
@@ -15,10 +20,16 @@ export const createJwtToken = async (req, res) => {
       });
     }
 
+    const cleanEmail = email.toLowerCase().trim();
+    const usersCollection = getUsersCollection();
+    const existingUser = await usersCollection.findOne({
+      email: { $regex: new RegExp(`^${cleanEmail}$`, 'i') },
+    });
+
     const payload = {
-      email: email.toLowerCase().trim(),
-      name: name,
-      image: image,
+      email: cleanEmail,
+      name: name || existingUser?.name || cleanEmail.split('@')[0],
+      image: image !== undefined ? image : (existingUser?.image || ''),
     };
 
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
@@ -52,6 +63,8 @@ export const updateProfileName = async (req, res) => {
   try {
     const booksCollection = getBooksCollection();
     const reviewsCollection = getReviewsCollection();
+    const borrowsCollection = getBorrowsCollection();
+    const usersCollection = getUsersCollection();
 
     const { name, image } = req.body;
     const userEmail = req.user.email.toLowerCase().trim();
@@ -64,19 +77,39 @@ export const updateProfileName = async (req, res) => {
     }
 
     const updatedName = name.trim();
-    const updatedImage = image !== undefined ? image : req.user.image;
+    const updatedImage = image !== undefined ? image : (req.user.image || '');
 
-    // Update user's name across their added books and reviews
+    // 1. Update user document in MongoDB (Better-Auth user collection)
+    const userUpdateFields = {
+      name: updatedName,
+      updatedAt: new Date(),
+    };
+    if (image !== undefined) {
+      userUpdateFields.image = updatedImage;
+    }
+    await usersCollection.updateOne(
+      { email: { $regex: new RegExp(`^${userEmail}$`, 'i') } },
+      { $set: userUpdateFields }
+    );
+
+    // 2. Update user's name across their added books
     await booksCollection.updateMany(
       { userEmail },
       { $set: { userName: updatedName } }
     );
 
+    // 3. Update reviews
     const reviewUpdate = { userName: updatedName };
-    if (image) {
+    if (image !== undefined) {
       reviewUpdate.userImage = updatedImage;
     }
     await reviewsCollection.updateMany({ userEmail }, { $set: reviewUpdate });
+
+    // 4. Update borrows
+    await borrowsCollection.updateMany(
+      { userEmail },
+      { $set: { userName: updatedName } }
+    );
 
     const newPayload = {
       email: userEmail,
