@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { JWT_SECRET } from '../config/jwt.js';
 import {
   getBooksCollection,
   getReviewsCollection,
@@ -32,7 +33,7 @@ export const createJwtToken = async (req, res) => {
       image: image !== undefined ? image : (existingUser?.image || ''),
     };
 
-    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+    const token = jwt.sign(payload, JWT_SECRET, {
       expiresIn: '7d',
     });
 
@@ -117,7 +118,7 @@ export const updateProfileName = async (req, res) => {
       image: updatedImage,
     };
 
-    const token = jwt.sign(newPayload, process.env.JWT_SECRET, {
+    const token = jwt.sign(newPayload, JWT_SECRET, {
       expiresIn: '7d',
     });
 

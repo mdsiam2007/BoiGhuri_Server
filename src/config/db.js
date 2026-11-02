@@ -14,14 +14,15 @@ let db;
 
 export async function connectDB() {
   await client.connect();
-  db = client.db(process.env.DB_NAME);
-  console.log(`🍃 Connected successfully to MongoDB (Database: ${process.env.DB_NAME})`);
+  const dbName = process.env.DB_NAME || 'boighuri';
+  db = client.db(dbName);
+  console.log(`🍃 Connected successfully to MongoDB (Database: ${dbName})`);
   return db;
 }
 
 export function getDB() {
   if (!db) {
-    db = client.db(process.env.DB_NAME);
+    db = client.db(process.env.DB_NAME || 'boighuri');
   }
   return db;
 }
